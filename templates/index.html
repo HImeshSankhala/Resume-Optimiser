@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Optimizer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f9;
+            color: #333;
+        }
+        header {
+            background: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+        }
+        .container {
+            padding: 20px;
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 10px;
+        }
+        .progress-bar {
+            display: none;
+            margin: 20px 0;
+            width: 100%;
+            background: #e0e0e0;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress {
+            height: 100%;
+            width: 0%;
+            background: #4caf50;
+        }
+        #results {
+            margin-top: 20px;
+        }
+        h2 {
+            color: #4caf50;
+        }
+        ul {
+            list-style-type: disc;
+            margin-left: 20px;
+        }
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Resume Optimizer</h1>
+    </header>
+    <div class="container">
+        <form id="resumeForm">
+            <label for="resume">Upload Resume (.txt, .docx, .pdf):</label><br>
+            <input type="file" id="resume" name="resume" required><br><br>
+
+            <label for="job_description">Paste Job Description:</label><br>
+            <textarea id="job_description" name="job_description" rows="8" cols="50" required></textarea><br><br>
+
+            <button type="submit">Analyze</button>
+        </form>
+
+        <div class="progress-bar" id="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+
+        <div id="results">
+            <h2 id="score"></h2>
+            <div id="keywords"></div>
+            <div id="suggestions"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('resumeForm');
+        const progressBar = document.getElementById('progress-bar');
+        const progress = document.getElementById('progress');
+        const keywordsElement = document.getElementById('keywords');
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault(); // Prevent form submission
+            
+            // Show progress bar
+            progressBar.style.display = 'block';
+            progress.style.width = '0%';
+
+            const formData = new FormData(form);
+
+            try {
+                // Simulate progress
+                let progressInterval = setInterval(() => {
+                    let width = parseInt(progress.style.width);
+                    if (width < 90) {
+                        progress.style.width = (width + 10) + '%';
+                    } else {
+                        clearInterval(progressInterval);
+                    }
+                }, 300);
+
+                // Send request
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                clearInterval(progressInterval);
+                progress.style.width = '100%';
+
+                const result = await response.json();
+                if (result.error) {
+                    document.getElementById('results').innerHTML = `<p class="error">${result.error}</p>`;
+                } else {
+                    // Display score
+                    document.getElementById('score').innerText = `Resume Score: ${result.score}%`;
+
+                    // Ensure matched_keywords and missing_keywords are processed correctly
+                    if (Array.isArray(result.matched_keywords) && Array.isArray(result.missing_keywords)) {
+                        keywordsElement.innerHTML = `
+                            <h3>Matched Keywords:</h3>
+                            <ul>${result.matched_keywords.map(keyword => `<li>${keyword}</li>`).join('')}</ul>
+                            <h3>Missing Keywords:</h3>
+                            <ul>${result.missing_keywords.map(keyword => `<li>${keyword}</li>`).join('')}</ul>
+                        `;
+                    } else {
+                        keywordsElement.innerHTML = `
+                            <p style="color: red;">Unexpected data format received for keywords.</p>
+                        `;
+                    }
+
+                    // Display suggestions
+                    document.getElementById('suggestions').innerHTML = `
+                        <h3>Suggestions:</h3>
+                        <ul>${result.suggestions.map(sg => `<li>${sg}</li>`).join('')}</ul>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('results').innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            } finally {
+                setTimeout(() => progressBar.style.display = 'none', 2000);
+            }
+        });
+    </script>
+</body>
+</html>
